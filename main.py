@@ -15,6 +15,7 @@ y_t: [batch, dim]
 """
 
 if __name__ == '__main__':
+
     theory_initializer = lambda: Theory(pred_initializer=mlp_model, domain_initializer=mlp_model,
 
                                         pred_kwargs={'input_dim': 6,

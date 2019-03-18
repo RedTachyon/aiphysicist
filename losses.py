@@ -65,7 +65,6 @@ def tf_real_dl(r: tf.Tensor, eps: float) -> tf.float32:
     return tf.reduce_sum(dl_tensor)
 
 
-
 def generalized_mean_loss(hub: Hub, X: np.ndarray, Y: np.ndarray, loss: Callable[[tf.Tensor, np.ndarray], float],
                           gamma: float = -1.) -> float:
     """
@@ -98,5 +97,22 @@ def generalized_mean_loss(hub: Hub, X: np.ndarray, Y: np.ndarray, loss: Callable
 
 
 def theory_dl_loss(theory: Theory, X: np.ndarray, Y: np.ndarray, eps: float):
-    # doesn't need to be differentiable ?
-    net_vars = theory.predictor.variables
+    """
+    Computes DL(T) + DL(errors)
+
+    Defined page 12?, Cor 1.1
+    Doesn't actually use weights directly I think
+
+    Args:
+        theory:
+        X:
+        Y:
+        eps:
+
+    Returns:
+
+    """
+
+    # absolutely has to be differentiable
+    # TODO: NEXT, DL loss l_dl_eps like on page 8
+    

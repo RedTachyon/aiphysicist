@@ -34,7 +34,7 @@ class Theory:
         return self.classifier(x_t)
 
     def evaluate(self, dataset: Tuple[np.ndarray, np.ndarray]) -> np.ndarray:
-
+        # TODO Apres-next
         pass
 
 
