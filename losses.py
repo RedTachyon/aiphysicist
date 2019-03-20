@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Optional
 
 import numpy as np
 
@@ -52,6 +52,8 @@ def tf_real_dl(r: tf.Tensor, eps: float) -> tf.float32:
     """
      Computes the real (as in, real number) description length of a tensor, in a tf differentiable manner
 
+     l_dl_eps = 1/2 log_2(1 + (u/eps)^2)
+
      Args:
          r: tensor of values
          eps: precision
@@ -62,24 +64,34 @@ def tf_real_dl(r: tf.Tensor, eps: float) -> tf.float32:
 
     dl_tensor = (0.5 / np.log(2)) * tf.math.log(1 + tf.square(tf.divide(r, eps)))
 
-    return tf.reduce_sum(dl_tensor)
+    return tf.reduce_sum(dl_tensor, axis=1)
 
 
-def generalized_mean_loss(hub: Hub, X: np.ndarray, Y: np.ndarray, loss: Callable[[tf.Tensor, np.ndarray], float],
-                          gamma: float = -1.) -> float:
+def generalized_mean_loss(hub: Hub, X: np.ndarray, Y: np.ndarray,
+                          gamma: float = -1.,
+                          eps: float = 10.,
+                          loss: Optional[Callable[[tf.Tensor, np.ndarray], float]] = None) -> tf.Tensor:
     """
-    Computes the generalized mean loss introduced in the paper, Eq (2),
+    Computes the generalized mean loss introduced in the paper, Eq (2)
+
+    Usage: loss = generalized_mean_loss(hub, X, Y, gamma=-1, eps=eps)
+    Then can use gradients of loss or whatever
 
     Args:
         hub:
         X:
         Y:
-        loss:
         gamma:
+        eps:
+        loss:
 
     Returns:
 
     """
+
+    if loss is None:
+        loss = lambda x, y: tf_real_dl(tf.abs(x - y), eps)
+
     theory_losses = []
 
     for theory in hub.theories:
@@ -87,32 +99,9 @@ def generalized_mean_loss(hub: Hub, X: np.ndarray, Y: np.ndarray, loss: Callable
         theory_loss = loss(pred, Y) ** gamma  # [batch, ]
         theory_losses.append(theory_loss)
 
-    full_loss = tf.add_n(theory_losses)  # [batch, ]
+    full_loss = tf.add_n(theory_losses)  # [batch, ] x M -> [batch, ]
     full_loss = full_loss / len(theory_losses)
     full_loss = full_loss ** (1 / gamma)
-
     full_loss = tf.reduce_sum(full_loss, axis=0)
 
     return full_loss
-
-
-def theory_dl_loss(theory: Theory, X: np.ndarray, Y: np.ndarray, eps: float):
-    """
-    Computes DL(T) + DL(errors)
-
-    Defined page 12?, Cor 1.1
-    Doesn't actually use weights directly I think
-
-    Args:
-        theory:
-        X:
-        Y:
-        eps:
-
-    Returns:
-
-    """
-
-    # absolutely has to be differentiable
-    # TODO: NEXT, DL loss l_dl_eps like on page 8
-    

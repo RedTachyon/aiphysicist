@@ -4,13 +4,14 @@ from tensorflow.python import keras
 from typing import Any, Optional, Callable, Tuple, List, Dict
 import sympy
 
-from losses import generalized_mean_loss
 from utils import get_n_most_frequent
 
 
 class Theory:
-    def __init__(self, pred_initializer: Callable[..., keras.Model], domain_initializer: Callable[..., keras.Model],
-                 pred_kwargs: Optional[Dict] = None, domain_kwargs: Optional[Dict] = None):
+    def __init__(self, pred_initializer: Callable[..., keras.Model],
+                 domain_initializer: Callable[..., keras.Model],
+                 pred_kwargs: Optional[Dict] = None,
+                 domain_kwargs: Optional[Dict] = None):
         """
 
         Args:
@@ -37,9 +38,14 @@ class Theory:
         # TODO Apres-next
         pass
 
+    def trainable_pred_variables(self):
+        return self.predictor.trainable_variables
+
 
 class Hub:
-    def __init__(self, initial_theories: int, initializer: Callable[..., Theory]):
+    def __init__(self, initial_theories: int,
+                 initializer: Callable[..., Theory]):
+
         self.theories: List[Theory] = [initializer() for _ in range(initial_theories)]
 
     def propose_theories(self, dataset: Tuple[np.ndarray, np.ndarray], M_0: int) -> List[Theory]:
@@ -60,3 +66,8 @@ class Hub:
         best_theories_idx = get_n_most_frequent(best_ind, M_0)  # (M_0,)
 
         return [self.theories[i] for i in best_theories_idx]
+
+    def trainable_pred_variables(self):
+        theory_variables = [theory.trainable_pred_variables() for theory in self.theories]
+        all_variables = [var for theory in theory_variables for var in theory]
+        return all_variables

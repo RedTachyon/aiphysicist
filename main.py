@@ -8,28 +8,34 @@ from utils import get_n_most_frequent
 
 from theory import Theory, Hub
 from models import mlp_model
+from train import extract_data
+from losses import generalized_mean_loss
 
 """
 x_t: [batch, length*dim]
 y_t: [batch, dim]
 """
 
-if __name__ == '__main__':
+X, Y = extract_data()
+M = 4  # Number of theories
 
-    theory_initializer = lambda: Theory(pred_initializer=mlp_model, domain_initializer=mlp_model,
+theory_initializer = lambda: Theory(pred_initializer=mlp_model, domain_initializer=mlp_model,
 
-                                        pred_kwargs={'input_dim': 6,
-                                                     'output_dim': 2,
-                                                     'hidden_sizes': (8, 8),
-                                                     'activation': None,
-                                                     'output_activation': None},
+                                    pred_kwargs={'input_dim': 6,
+                                                 'output_dim': 2,
+                                                 'hidden_sizes': (8, 8),
+                                                 'activation': None,
+                                                 'output_activation': None},
 
-                                        domain_kwargs={'input_dim': 6,
-                                                       'output_dim': 1,
-                                                       'hidden_sizes': (8, 8),
-                                                       'activation': keras.layers.LeakyReLU(0.3),
-                                                       'output_activation': None}
+                                    domain_kwargs={'input_dim': 6,
+                                                   'output_dim': 1,
+                                                   'hidden_sizes': (8, 8),
+                                                   'activation': keras.layers.LeakyReLU(0.3),
+                                                   'output_activation': None}
 
-                                        )
+                                    )
 
-    hub = Hub(5, theory_initializer)
+hub = Hub(M, theory_initializer)
+
+loss = generalized_mean_loss(hub, X, Y)
+
