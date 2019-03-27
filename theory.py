@@ -87,11 +87,21 @@ class Theory:
 
 
 class Hub:
-    def __init__(self, initial_theories: int,
-                 initializer: Callable[..., Theory]):
+    def __init__(self, num_theories: Optional[int] = None,
+                 initializer: Optional[Callable[..., Theory]] = None,
+                 initial_theories: Optional[List[Theory]] = None):
 
-        self.num_theories = initial_theories
-        self.theories: List[Theory] = [initializer() for _ in range(self.num_theories)]
+        if (num_theories is not None) and (initializer is not None) and (initial_theories is None):
+            self.num_theories = num_theories
+            self.theories: List[Theory] = [initializer() for _ in range(self.num_theories)]
+
+        elif (num_theories is None) and (initializer is None) and (initial_theories is not None):
+            self.num_theories = len(initial_theories)
+            self.theories = initial_theories
+
+        else:
+            raise ValueError("Malformed constructor arguments. Pass either a number of theories and an initializer, "
+                             "or a list of initial theories.")
 
     def propose_theories(self, X: np.ndarray, Y: np.ndarray, M_0: int) -> List[Theory]:
         """
@@ -106,7 +116,7 @@ class Hub:
             List of best theories
 
         """
-        assert M_0 < self.num_theories, "M_0 must be lower or equal to the total number of theories in the hub"
+        assert M_0 <= self.num_theories, "M_0 must be lower or equal to the total number of theories in the hub"
 
         losses = []
 

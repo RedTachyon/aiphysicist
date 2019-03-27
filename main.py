@@ -1,6 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.python import keras
+from tensorflow.python.keras.optimizer_v2.rmsprop import RMSProp
+from tensorflow.python.keras.optimizer_v2.gradient_descent import SGD
 from typing import Any, Optional, Callable, Tuple, List, Dict
 import sympy
 
@@ -8,7 +10,7 @@ from utils import get_n_most_frequent
 
 from theory import Theory, Hub
 from models import mlp_model
-from train import extract_data
+from train import extract_data, iterative_train
 from losses import generalized_mean_loss
 
 """
@@ -17,7 +19,8 @@ y_t: [batch, dim]
 """
 
 X, Y = extract_data()
-M = 4  # Number of theories
+M = 1  # Number of theories
+M_0 = 1
 
 theory_initializer = lambda: Theory(pred_initializer=mlp_model, domain_initializer=mlp_model,
 
@@ -37,5 +40,4 @@ theory_initializer = lambda: Theory(pred_initializer=mlp_model, domain_initializ
 
 hub = Hub(M, theory_initializer)
 
-loss = generalized_mean_loss(hub, X, Y)
-
+theories = hub.propose_theories(X, Y, M_0)
