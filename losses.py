@@ -63,11 +63,17 @@ def generalized_mean_loss(hub: Union[Hub, List[Theory]], X: np.ndarray, Y: np.nd
 
     for theory in theories:
         pred = theory.predict(X)  # [batch, dim]
-        theory_loss = loss(pred, Y) ** gamma  # [batch, ]
+        theory_loss = loss(pred, Y) + 1e-8  # [batch, ]
+
+        theory_loss = theory_loss ** gamma
         theory_losses.append(theory_loss)
 
     full_loss = tf.add_n(theory_losses)  # [batch, ] x M -> [batch, ]
+    assert len(theory_losses) > 0
     full_loss = full_loss / len(theory_losses)
+
+    assert not any(full_loss.numpy() == 0)
+
     full_loss = full_loss ** (1 / gamma)
     full_loss = tf.reduce_sum(full_loss, axis=0)  # tf.float
 
