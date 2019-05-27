@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.python import keras
+from tensorflow.python.keras.optimizer_v2.adam import Adam
 from tensorflow.python.keras.optimizer_v2.rmsprop import RMSProp
 from tensorflow.python.keras.optimizer_v2.gradient_descent import SGD
 from typing import Any, Optional, Callable, Tuple, List, Dict
@@ -19,15 +20,15 @@ y_t: [batch, dim]
 """
 
 X, Y = extract_data()
-M = 1  # Number of theories
-M_0 = 1
+M = 4  # Number of theories
+M_0 = 2  # Number of theories to be proposed
 
 theory_initializer = lambda: Theory(pred_initializer=mlp_model, domain_initializer=mlp_model,
 
                                     pred_kwargs={'input_dim': 6,
                                                  'output_dim': 2,
                                                  'hidden_sizes': (8, 8),
-                                                 'activation': None,
+                                                 'activation': keras.layers.ReLU(),
                                                  'output_activation': None},
 
                                     domain_kwargs={'input_dim': 6,
@@ -41,3 +42,5 @@ theory_initializer = lambda: Theory(pred_initializer=mlp_model, domain_initializ
 hub = Hub(M, theory_initializer)
 
 theories = hub.propose_theories(X, Y, M_0)
+
+iterative_train(theories, X, Y, K=1000, optimizer_pred=RMSProp(), optimizer_domain=RMSProp())

@@ -50,7 +50,7 @@ def generalized_mean_loss(hub: Union[Hub, List[Theory]], X: np.ndarray, Y: np.nd
     if loss is None:
         loss = lambda x, y: tf_real_dl(tf.abs(x - y), eps)
 
-    theories: List[Theory] = None
+    theories: List[Theory] = []
 
     if isinstance(hub, list):
         theories = hub

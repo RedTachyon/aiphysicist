@@ -1,4 +1,4 @@
-from typing import Tuple, List, Callable, Union
+from typing import Tuple, List, Callable, Union, Optional, Dict
 
 import tensorflow as tf
 from tensorflow.python import keras
@@ -47,53 +47,75 @@ def iterative_train(theories: Union[List[Theory], Hub],
         with tf.GradientTape() as tape:
 
             loss = generalized_mean_loss(theories, X, Y, gamma=-1, eps=eps)
-            print("Step %d loss %.5f" % (k, loss.numpy()))
+            if not k % 100:
+                print("Step %d loss %.5f" % (k, loss.numpy()))
 
         gradients = tape.gradient(loss, trainable_pred_variables)
-        # TODO figure out wtf's up with the gradients
-        print("Step %d before update %.5f" % (k, trainable_pred_variables[0].numpy().max()))
-        print("Step %d before update any nan:" % k, any([np.isnan(var.numpy()).any() for var in trainable_pred_variables]))
 
-        print("Step %d gradient max %.5f" % (k, gradients[0].numpy().max()))
-        print("Step %d gradient min %.5f" % (k, gradients[0].numpy().min()))
+        # print("Step %d before update %.5f" % (k, trainable_pred_variables[0].numpy().max()))
+        # print("Step %d before update any nan:" % k, any([np.isnan(var.numpy()).any() for var in trainable_pred_variables]))
+        #
+        # print("Step %d gradient max %.5f" % (k, gradients[0].numpy().max()))
+        # print("Step %d gradient min %.5f" % (k, gradients[0].numpy().min()))
 
         optimizer_pred.apply_gradients(zip(gradients, trainable_pred_variables))
 
-        print("Step %d after update %.5f" % (k, trainable_pred_variables[0].numpy().max()))
-        print()
+        # print("Step %d after update %.5f" % (k, trainable_pred_variables[0].numpy().max()))
+        # print()
 
         if flag: break
         if np.isnan(trainable_pred_variables[0].numpy().max()):
             flag = True
 
-        # # Domain optimization
-        #
-        # losses = []
-        #
-        # for theory in theories:
-        #     theory_preds = theory.predict(X).numpy()  # (batch, dim)
-        #     loss = real_dl(np.abs(theory_preds - Y), eps).sum(axis=1)  # (batch,)
-        #     losses.append(loss)
-        #
-        # losses = np.stack(losses, axis=1)  # (batch, theories)
-        # best_idx = np.argmin(losses, axis=1)  # (batch, ) labels for the domain classification
-        #
-        # with tf.GradientTape() as tape:
-        #
-        #     domain_probs = []
-        #     for theory in theories:
-        #         preds = theory.domain(X)  # (batch, 1)
-        #         domain_probs.append(preds)
-        #
-        #     domain_probs = tf.concat(domain_probs, axis=1)  # (batch, theories)
-        #     domain_probs = softmax(domain_probs, axis=1)  # (batch, theories)
-        #
-        #     cce = SparseCategoricalCrossentropy()
-        #     loss = cce(y_true=best_idx, y_pred=domain_probs)
-        #
-        # gradients = tape.gradient(loss, trainable_domain_variables)
-        # optimizer_domain.apply_gradients(zip(gradients, trainable_domain_variables))
+        # TODO: check if domain optimization actually works
+        # Domain optimization
+
+        losses = []
+
+        for theory in theories:
+            theory_preds = theory.predict(X).numpy()  # (batch, dim)
+            loss = real_dl(np.abs(theory_preds - Y), eps).sum(axis=1)  # (batch,)
+            losses.append(loss)
+
+        losses = np.stack(losses, axis=1)  # (batch, theories)
+        best_idx = np.argmin(losses, axis=1)  # (batch, ) labels for the domain classification
+
+        with tf.GradientTape() as tape:
+
+            domain_probs = []
+            for theory in theories:
+                preds = theory.domain(X)  # (batch, 1)
+                domain_probs.append(preds)
+
+            domain_probs = tf.concat(domain_probs, axis=1)  # (batch, theories)
+            domain_probs = softmax(domain_probs, axis=1)  # (batch, theories)
+
+            cce = SparseCategoricalCrossentropy()
+            loss = cce(y_true=best_idx, y_pred=domain_probs)
+
+        gradients = tape.gradient(loss, trainable_domain_variables)
+        optimizer_domain.apply_gradients(zip(gradients, trainable_domain_variables))
 
 
-def ddac(M: int, hub_theories: List[Theory], K: int, beta_f: float, beta_c: float, eps_0: float):
-    pass
+def ddac(M: int,
+         hub_theories: List[Theory],
+         theory_initializer: Callable[..., Theory],
+         X: np.ndarray, Y: np.ndarray,
+         it_kwargs: Dict,
+         K: int, beta_f: float, beta_c: float, eps_0: float):
+
+    # it_kwargs should have optimizer_pred, optimizer_domain and K
+    M_0 = len(hub_theories)  # Number of theories proposed from the hub
+    num_new_theories = M - M_0
+
+    new_theories: List[Theory] = []
+    for _ in range(num_new_theories):
+        new_theories.append(theory_initializer())
+
+    theories = hub_theories + new_theories  # len = M
+
+    eps = eps_0
+
+    # Harmonic training with DL loss
+    for k in range(5):
+        iterative_train(theories, X, Y, eps=eps, **it_kwargs)

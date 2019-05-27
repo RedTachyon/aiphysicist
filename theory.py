@@ -144,13 +144,31 @@ class Hub:
         return all_variables
 
     def add_theories(self, theories: List[Theory], X: np.ndarray, Y: np.ndarray, eta: float):
+        """
+        Algorithm 6
+        Args:
+            theories:
+            X:
+            Y:
+            eta:
 
+        Returns:
+
+        """
         domain_logits = []
         for theory in theories:
+            # Probability of each datapoint belonging to that theory
             domain_logits.append(theory.domain(X).numpy())  # List[ (batch, ) ]
 
         domain_logits = np.stack(domain_logits, axis=1)  # (batch, theories)
         best_idx = domain_logits.argmax(axis=1)  # (batch, )  best index for each sample
-        fitting_samples = []  # len: theories
-        # TODO: Finish this, Algorithm 6, Page 11
-        return
+        fitting_samples = [None] * len(theories)  # len: len(theories)
+
+        for i, theory in enumerate(theories):
+            # Indices with the right value
+            fitting_samples[i] = np.where(domain_logits == i)[0]
+            # fitting_samples[i] = X[np.where(domain_logits == i)[0]] # Have to update Y somehow too
+
+
+        # TODO: Finish this, Algorithm 6, Page 12
+        return best_idx
