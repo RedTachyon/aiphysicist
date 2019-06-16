@@ -4,7 +4,7 @@ from tensorflow.python import keras
 from typing import Any, Optional, Callable, Tuple, List, Dict
 import sympy
 
-from utils import get_n_most_frequent, real_dl
+from utils import get_n_most_frequent, real_dl, tf_real_dl
 
 
 class Theory:
@@ -92,16 +92,30 @@ class Hub:
                  initial_theories: Optional[List[Theory]] = None):
 
         if (num_theories is not None) and (initializer is not None) and (initial_theories is None):
+            # Create theories using the initializer
             self.num_theories = num_theories
             self.theories: List[Theory] = [initializer() for _ in range(self.num_theories)]
 
         elif (num_theories is None) and (initializer is None) and (initial_theories is not None):
+            # Use a predefined list of theories
             self.num_theories = len(initial_theories)
             self.theories = initial_theories
 
         else:
             raise ValueError("Malformed constructor arguments. Pass either a number of theories and an initializer, "
                              "or a list of initial theories.")
+
+    # def trainable_pred_variables(self) -> List[tf.Tensor]:
+    #     """
+    #     Returns a list of all trainable predictor variables of theories in the hub
+    #     """
+    #     theory_variables = [theory.trainable_pred_variables() for theory in self.theories]
+    #     all_variables = [var for theory in theory_variables for var in theory]
+    #     return all_variables
+
+    def add_individual_theory(self, theory: Theory):
+        self.num_theories += 1
+        self.theories.append(theory)
 
     def propose_theories(self, X: np.ndarray, Y: np.ndarray, M_0: int) -> List[Theory]:
         """
@@ -135,24 +149,18 @@ class Hub:
 
         return [self.theories[i] for i in best_theories_idx]
 
-    def trainable_pred_variables(self) -> List[tf.Tensor]:
-        """
-        Returns a list of all trainable predictor variables of theories in the hub
-        """
-        theory_variables = [theory.trainable_pred_variables() for theory in self.theories]
-        all_variables = [var for theory in theory_variables for var in theory]
-        return all_variables
-
-    def add_theories(self, theories: List[Theory], X: np.ndarray, Y: np.ndarray, eta: float):
+    def add_theories(self, theories: List[Theory], X: np.ndarray, Y: np.ndarray, eta: float, eps: float = 10.):
         """
         Algorithm 6
         Args:
-            theories:
-            X:
-            Y:
-            eta:
+            theories: List of theories from which to (maybe) add to the hub
+            X: X dataset
+            Y: Y dataset
+            eta: threshold for loss to add theories
+            eps: precision for DL loss, not mentioned in the algorithm, not sure about it
 
         Returns:
+            desc_losses: list of losses of all theories, mainly for debugging purposes, might remove later
 
         """
         domain_logits = []
@@ -162,13 +170,27 @@ class Hub:
 
         domain_logits = np.stack(domain_logits, axis=1)  # (batch, theories)
         best_idx = domain_logits.argmax(axis=1)  # (batch, )  best index for each sample
-        fitting_samples = [None] * len(theories)  # len: len(theories)
 
+        # D^(i)
+        domain_samples: List[Optional[np.ndarray]] = [None] * len(theories)  # Datasets optimal for each theory
+
+        # The following for loops can probably be merged/optimized
+        # Something's wrong here
         for i, theory in enumerate(theories):
             # Indices with the right value
-            fitting_samples[i] = np.where(domain_logits == i)[0]
-            # fitting_samples[i] = X[np.where(domain_logits == i)[0]] # Have to update Y somehow too
+            domain_samples[i] = np.where(best_idx == i)[0]
+            #
+            # domain_samples[i] = X[np.where(best_idx == i)[0]] # Have to update Y somehow too
 
+        # dl^(i)
+        desc_losses: List[Optional[np.float]] = [None] * len(theories)
 
-        # TODO: Finish this, Algorithm 6, Page 12
-        return best_idx
+        for i, theory in enumerate(theories):
+            X_i, Y_i = X[domain_samples[i]], Y[domain_samples[i]]
+            abs_loss = tf.abs(theory.predict(X_i) - Y_i)
+            desc_losses[i] = tf.reduce_mean(tf_real_dl(abs_loss, eps)).numpy()
+
+        for i, loss in enumerate(desc_losses):
+            if loss < eta:
+                self.add_individual_theory(theories[i])
+        return desc_losses

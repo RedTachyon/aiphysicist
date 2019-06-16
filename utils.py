@@ -1,4 +1,5 @@
 import numpy as np
+import tensorflow as tf
 
 
 def int_dl(m: int) -> float:
@@ -59,3 +60,22 @@ def get_n_most_frequent(a: np.ndarray, n: int) -> np.ndarray:
     (vals, cts) = np.unique(a, return_counts=True)
     idx = cts.argsort()[::-1][:n]  # most frequent indices
     return idx
+
+
+def tf_real_dl(r: tf.Tensor, eps: float) -> tf.Tensor:
+    """
+     Computes the real (as in, real number) description length of a tensor, in a tf differentiable manner
+
+     l_dl_eps = 1/2 log_2(1 + (u/eps)^2)
+
+     Args:
+         r: tensor of values
+         eps: precision
+
+     Returns:
+         description length
+     """
+
+    dl_tensor = (0.5 / np.log(2)) * tf.math.log(1 + tf.square(tf.divide(r, eps)))
+
+    return tf.reduce_sum(dl_tensor, axis=1)

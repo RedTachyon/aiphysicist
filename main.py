@@ -43,4 +43,4 @@ hub = Hub(M, theory_initializer)
 
 theories = hub.propose_theories(X, Y, M_0)
 
-iterative_train(theories, X, Y, K=1000, optimizer_pred=RMSProp(), optimizer_domain=RMSProp())
+iterative_train(theories, X, Y, K=101, optimizer_pred=RMSProp(), optimizer_domain=RMSProp())

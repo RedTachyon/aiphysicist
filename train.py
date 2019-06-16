@@ -28,12 +28,16 @@ def extract_data(path: str = '../DATA/MYSTERIES/2Dmysteryt50401.csv', T: int = 3
     return X, Y
 
 
-def iterative_train(theories: Union[List[Theory], Hub],
+def set_precision(theories: List[Theory], X: np.ndarray, Y: np.ndarray) -> float:
+    return .3
+
+# First arg could be Union[List[Theory], Hub]
+def iterative_train(theories: List[Theory],
                     X: np.ndarray, Y: np.ndarray,
                     optimizer_pred: OptimizerV2 = Adam(),
                     optimizer_domain: OptimizerV2 = Adam(),
                     K: int = 10000,
-                    eps: float = 10):
+                    eps: float = 10.):
 
     trainable_pred_variables = sum(map(lambda x: x.trainable_pred_variables(), theories), [])
 
@@ -67,9 +71,7 @@ def iterative_train(theories: Union[List[Theory], Hub],
         if np.isnan(trainable_pred_variables[0].numpy().max()):
             flag = True
 
-        # TODO: check if domain optimization actually works
         # Domain optimization
-
         losses = []
 
         for theory in theories:
@@ -116,6 +118,9 @@ def ddac(M: int,
 
     eps = eps_0
 
+    # TODO: complete DDAC
+
     # Harmonic training with DL loss
     for k in range(5):
         iterative_train(theories, X, Y, eps=eps, **it_kwargs)
+        eps =

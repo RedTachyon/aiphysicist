@@ -5,30 +5,13 @@ import numpy as np
 from theory import Theory, Hub
 import tensorflow as tf
 
-
-def tf_real_dl(r: tf.Tensor, eps: float) -> tf.float32:
-    """
-     Computes the real (as in, real number) description length of a tensor, in a tf differentiable manner
-
-     l_dl_eps = 1/2 log_2(1 + (u/eps)^2)
-
-     Args:
-         r: tensor of values
-         eps: precision
-
-     Returns:
-         description length
-     """
-
-    dl_tensor = (0.5 / np.log(2)) * tf.math.log(1 + tf.square(tf.divide(r, eps)))
-
-    return tf.reduce_sum(dl_tensor, axis=1)
+from utils import tf_real_dl
 
 
 def generalized_mean_loss(hub: Union[Hub, List[Theory]], X: np.ndarray, Y: np.ndarray,
                           gamma: float = -1.,
                           eps: float = 10.,
-                          loss: Optional[Callable[[tf.Tensor, np.ndarray], float]] = None) -> tf.Tensor:
+                          loss: Optional[Callable[[tf.Tensor, np.ndarray], tf.Tensor]] = None) -> tf.Tensor:
     """
     Computes the generalized mean loss introduced in the paper, Eq (2)
 
@@ -63,7 +46,7 @@ def generalized_mean_loss(hub: Union[Hub, List[Theory]], X: np.ndarray, Y: np.nd
 
     for theory in theories:
         pred = theory.predict(X)  # [batch, dim]
-        theory_loss = loss(pred, Y) + 1e-8  # [batch, ]
+        theory_loss = tf.add(loss(pred, Y), 1e-8)  # [batch, ]
 
         theory_loss = theory_loss ** gamma
         theory_losses.append(theory_loss)
