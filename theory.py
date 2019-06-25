@@ -193,4 +193,15 @@ class Hub:
         for i, loss in enumerate(desc_losses):
             if loss < eta:
                 self.add_individual_theory(theories[i])
+
         return desc_losses
+
+
+def make_prediction(theories: List[Theory], X: np.ndarray):
+    logits = []  # List[Tensor], len = len(theories)
+    for theory in theories:
+        logits.append(theory.domain(X).numpy().flatten())  # (batch, 1)
+
+    logits = np.stack(logits, axis=1)  # (batch, theories)
+    return logits
+

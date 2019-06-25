@@ -9,7 +9,7 @@ import sympy
 
 from utils import get_n_most_frequent
 
-from theory import Theory, Hub
+from theory import Theory, Hub, make_prediction
 from models import mlp_model
 from train import extract_data, iterative_train
 from losses import generalized_mean_loss

@@ -29,7 +29,8 @@ def extract_data(path: str = '../DATA/MYSTERIES/2Dmysteryt50401.csv', T: int = 3
 
 
 def set_precision(theories: List[Theory], X: np.ndarray, Y: np.ndarray) -> float:
-    return .3
+    return 10.
+
 
 # First arg could be Union[List[Theory], Hub]
 def iterative_train(theories: List[Theory],
@@ -123,4 +124,4 @@ def ddac(M: int,
     # Harmonic training with DL loss
     for k in range(5):
         iterative_train(theories, X, Y, eps=eps, **it_kwargs)
-        eps =
+        # eps =
