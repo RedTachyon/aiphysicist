@@ -2,7 +2,7 @@ from typing import Callable, Optional, Union, List
 
 import numpy as np
 
-from theory import Theory, Hub
+from theory import Theory, Hub, assign_theories
 import tensorflow as tf
 
 from utils import tf_real_dl
@@ -59,5 +59,38 @@ def generalized_mean_loss(hub: Union[Hub, List[Theory]], X: np.ndarray, Y: np.nd
 
     full_loss = full_loss ** (1 / gamma)
     full_loss = tf.reduce_sum(full_loss, axis=0)  # tf.float
+
+    return full_loss
+
+
+def dominant_loss(hub: Union[Hub, List[Theory]], X: np.ndarray, Y: np.ndarray,
+                  eps: float = 10.,
+                  loss: Optional[Callable[[tf.Tensor, np.ndarray], tf.Tensor]] = None) -> tf.Tensor:
+
+    if loss is None:
+        loss = lambda x, y: tf_real_dl(tf.abs(x - y), eps)
+
+    theories: List[Theory] = []
+
+    if isinstance(hub, list):
+        theories = hub
+    elif isinstance(hub, Hub):
+        theories = hub.theories
+    else:
+        raise AttributeError("The first argument should be either a hub or a list of theories")
+
+    best_idx = assign_theories(theories, X, Y)
+    loss_parts = []
+    for i, theory in enumerate(theories):
+        idx = np.where(best_idx == i)
+        X_i = X[idx]
+        Y_i = Y[idx]
+
+        pred = theory.predict(X_i)
+        theory_loss = loss(pred, Y_i)  # (partial_batch, )
+        loss_parts.append(theory_loss)
+
+    full_loss = tf.concat(loss_parts, axis=0)  # (batch, )
+    full_loss = tf.reduce_sum(full_loss)
 
     return full_loss

@@ -197,11 +197,28 @@ class Hub:
         return desc_losses
 
 
+def assign_theories(theories: List[Theory], X: np.ndarray, Y: np.ndarray) -> np.ndarray:
+    """
+    For each datapoint, assigns the index of the theory that best explains it
+    """
+    losses = []
+
+    for theory in theories:
+        theory_preds = theory.predict(X).numpy()  # (batch, dim)
+        loss = real_dl(np.abs(theory_preds - Y), 1.).sum(axis=1)  # (batch,)
+        losses.append(loss)
+
+    losses = np.stack(losses, axis=1)  # (batch, theories)
+    best_idx = np.argmin(losses, axis=1)  # (batch, )
+
+    return best_idx
+
+
 def make_prediction(theories: List[Theory], X: np.ndarray):
     logits = []  # List[Tensor], len = len(theories)
     for theory in theories:
         logits.append(theory.domain(X).numpy().flatten())  # (batch, 1)
 
     logits = np.stack(logits, axis=1)  # (batch, theories)
+    # TODO: finish this
     return logits
-

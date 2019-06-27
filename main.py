@@ -9,10 +9,10 @@ import sympy
 
 from utils import get_n_most_frequent
 
-from theory import Theory, Hub, make_prediction
+from theory import Theory, Hub, make_prediction, assign_theories
 from models import mlp_model
 from train import extract_data, iterative_train
-from losses import generalized_mean_loss
+from losses import generalized_mean_loss, dominant_loss
 
 """
 x_t: [batch, length*dim]
